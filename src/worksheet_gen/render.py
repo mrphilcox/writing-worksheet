@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 import sys
 from typing import Any
 
+from fontTools.ttLib import TTFont as FontToolsTTFont
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -18,7 +20,15 @@ from .schema import Worksheet
 class FontSet:
     regular: str
     bold: str
-    regular_face: Any | None
+    regular_ttf: Path | None
+
+
+@dataclass(frozen=True)
+class FontMetrics:
+    units_per_em: float
+    descent: float
+    cap_height: float
+    x_height: float
 
 
 def _warn(message: str) -> None:
@@ -28,12 +38,12 @@ def _warn(message: str) -> None:
 def _register_fonts() -> FontSet:
     regular_name = config.FONT_REGULAR_NAME
     bold_name = config.FONT_BOLD_NAME
-    regular_face = None
+    regular_ttf = None
 
     if config.ANDIKA_REGULAR_TTF.is_file():
         regular_font = TTFont(regular_name, str(config.ANDIKA_REGULAR_TTF))
         pdfmetrics.registerFont(regular_font)
-        regular_face = regular_font.face
+        regular_ttf = config.ANDIKA_REGULAR_TTF
     else:
         _warn(f"missing font: {config.ANDIKA_REGULAR_TTF}")
         regular_name = config.FALLBACK_FONT_REGULAR
@@ -45,36 +55,96 @@ def _register_fonts() -> FontSet:
         _warn(f"missing font: {config.ANDIKA_BOLD_TTF}")
         bold_name = config.FALLBACK_FONT_BOLD
 
-    return FontSet(regular=regular_name, bold=bold_name, regular_face=regular_face)
+    return FontSet(regular=regular_name, bold=bold_name, regular_ttf=regular_ttf)
 
 
-def fit_font_size_to_guides(
-    font_name: str,
-    main_height_pts: float,
-    desc_height_pts: float,
-    safety: float,
-) -> float:
-    ascent = pdfmetrics.getAscent(font_name)   # 1000-em units
-    descent = pdfmetrics.getDescent(font_name) # negative 1000-em units
+def fit_font_size_to_height(font_name: str, available_height_pts: float, safety: float) -> float:
+    ascent = pdfmetrics.getAscent(font_name)
+    descent = pdfmetrics.getDescent(font_name)
+    em_height = (ascent - descent) / config.FONT_EM_UNITS
+    if em_height <= 0:
+        return available_height_pts * safety
+    return (available_height_pts / em_height) * safety
 
-    # Fallback if metrics are weird
-    if ascent <= 0:
-        return main_height_pts * safety
 
-    ascent_ratio = ascent / config.FONT_EM_UNITS
-    descent_ratio = (-descent) / config.FONT_EM_UNITS if descent < 0 else 0.0
+@lru_cache(maxsize=None)
+def _load_font_metrics(font_path: str) -> FontMetrics:
+    font = FontToolsTTFont(font_path)
+    try:
+        head = font["head"]
+        hhea = font["hhea"]
+        os2 = font["OS/2"] if "OS/2" in font else None
 
-    # Size constrained by ascenders in the main zone
-    size_from_main = main_height_pts / ascent_ratio
+        units_per_em = float(head.unitsPerEm)
+        descent = getattr(hhea, "descent", None)
+        if descent is None and os2 is not None:
+            descent = getattr(os2, "sTypoDescender", None)
+        if descent is None:
+            descent = 0.0
 
-    # Size constrained by descenders in the descender zone (if any)
-    if descent_ratio > 0:
-        size_from_desc = desc_height_pts / descent_ratio
-        size = min(size_from_main, size_from_desc)
-    else:
-        size = size_from_main
+        cap_height = None
+        if os2 is not None:
+            cap_height = getattr(os2, "sCapHeight", None)
+        if cap_height:
+            cap_height_value = float(cap_height)
+        elif os2 is not None and getattr(os2, "usWinAscent", None):
+            cap_height_value = float(os2.usWinAscent) * config.CAP_HEIGHT_FALLBACK_RATIO
+        else:
+            cap_height_value = float(hhea.ascent) * config.CAP_HEIGHT_FALLBACK_RATIO
 
-    return size * safety
+        x_height = None
+        if os2 is not None:
+            x_height = getattr(os2, "sxHeight", None)
+        if x_height:
+            x_height_value = float(x_height)
+        elif os2 is not None and getattr(os2, "usWinAscent", None):
+            x_height_value = float(os2.usWinAscent) * config.X_HEIGHT_FALLBACK_RATIO
+        else:
+            x_height_value = float(hhea.ascent) * config.X_HEIGHT_FALLBACK_RATIO
+
+        return FontMetrics(
+            units_per_em=units_per_em,
+            descent=float(descent),
+            cap_height=cap_height_value,
+            x_height=x_height_value,
+        )
+    finally:
+        font.close()
+
+
+def _compute_model_font_size(font_name: str, font_path: Path | None) -> float:
+    available_cap_height_pts = config.GUIDE_MAIN_HEIGHT_PT + config.GUIDE_PAD_TOP_PT
+
+    if font_path is None or not font_path.exists():
+        _warn("cap-height metrics unavailable; using ascent-based sizing")
+        return fit_font_size_to_height(
+            font_name,
+            available_cap_height_pts,
+            config.MODEL_TEXT_SAFETY,
+        )
+
+    metrics = _load_font_metrics(str(font_path))
+    if metrics.units_per_em <= 0:
+        _warn("invalid font units per em; using ascent-based sizing")
+        return fit_font_size_to_height(
+            font_name,
+            available_cap_height_pts,
+            config.MODEL_TEXT_SAFETY,
+        )
+
+    cap_ratio = metrics.cap_height / metrics.units_per_em
+    desc_ratio = abs(metrics.descent) / metrics.units_per_em
+
+    size_from_caps = (
+        available_cap_height_pts / cap_ratio if cap_ratio > 0 else available_cap_height_pts
+    )
+    size_from_desc = (
+        config.GUIDE_DESC_HEIGHT_PT / desc_ratio
+        if desc_ratio > 0
+        else available_cap_height_pts
+    )
+
+    return min(size_from_caps, size_from_desc) * config.MODEL_TEXT_SAFETY
 
 
 def _draw_text_line(
@@ -260,12 +330,7 @@ def render_pdf(worksheet: Worksheet, output_path: str | Path, base_dir: str | Pa
     base_dir = Path(base_dir) if base_dir is not None else Path.cwd()
 
     fonts = _register_fonts()
-    model_font_size = fit_font_size_to_guides(
-        fonts.regular,
-        config.GUIDE_MAIN_HEIGHT_PT,
-        config.GUIDE_DESC_HEIGHT_PT,
-        config.MODEL_TEXT_SAFETY,
-    )
+    model_font_size = _compute_model_font_size(fonts.regular, fonts.regular_ttf)
 
     c = canvas.Canvas(
         str(output_path),
