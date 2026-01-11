@@ -1,0 +1,36 @@
+# example-minimal.yaml
+schema_version: "2.0"
+language: "en"
+
+sentence:
+  display: "Abby bakes bread."
+  model: "Abby bakes bread."
+
+reminder_bd:
+  title: "Remember:"
+  b_line: "b = stick first, then circle (ball)"
+  d_line: "d = circle first, then stick (dog)"
+
+sections:
+  - type: "trace"
+    title: "Trace (2 times):"
+    rows:
+      - midline: true
+        model_text: true
+      - midline: false
+        model_text: true
+
+  - type: "write"
+    title: "Write (5 times):"
+    rows:
+      - midline: true
+        model_text: false
+      - midline: true
+        model_text: false
+      - midline: true
+        model_text: false
+      - midline: false
+        model_text: false
+      - midline: false
+        model_text: false
+

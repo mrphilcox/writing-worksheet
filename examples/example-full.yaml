@@ -1,0 +1,50 @@
+# example-full.yaml
+schema_version: "2.0"
+language: "en"
+title: "Abby’s Handwriting Practice – English"
+child_name: "Abby"
+date_text: "Date: ____________________"
+
+emotion_prompt:
+  text: "How does this feel today?"
+  choices: ["Happy", "Okay", "Hard"]
+
+reminder_bd:
+  title: "Remember:"
+  b_line: "b = stick first, then circle (ball)"
+  d_line: "d = circle first, then stick (dog)"
+
+sentence:
+  display: "Abby bakes bread."
+  model: "Abby bakes bread."
+
+cartoon:
+  enabled: true
+  asset: "assets/cartoons/placeholder-unicorn.svg"
+  placement: "header_top_right"
+  max_width_in: 1.5
+  max_height_in: 1.5
+
+sections:
+  - type: "trace"
+    title: "Trace (2 times):"
+    rows:
+      - midline: true
+        model_text: true
+      - midline: false
+        model_text: true
+
+  - type: "write"
+    title: "Write (5 times):"
+    rows:
+      - midline: true
+        model_text: false
+      - midline: true
+        model_text: false
+      - midline: true
+        model_text: false
+      - midline: false
+        model_text: false
+      - midline: false
+        model_text: false
+
