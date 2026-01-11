@@ -1,0 +1,8 @@
+Metadata-Version: 2.4
+Name: worksheet-gen
+Version: 0.1.0
+Summary: Minimal worksheet PDF generator
+Requires-Python: >=3.12
+Requires-Dist: reportlab>=4.0
+Requires-Dist: pydantic>=2.0
+Requires-Dist: pyyaml>=6.0

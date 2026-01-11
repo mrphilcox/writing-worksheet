@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "worksheet-gen"
+version = "0.1.0"
+description = "Minimal worksheet PDF generator"
+requires-python = ">=3.12"
+dependencies = [
+  "reportlab>=4.0",
+  "pydantic>=2.0",
+  "pyyaml>=6.0",
+]
+
+[project.scripts]
+worksheet-gen = "worksheet_gen.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
