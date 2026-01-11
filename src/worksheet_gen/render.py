@@ -48,40 +48,13 @@ def _register_fonts() -> FontSet:
     return FontSet(regular=regular_name, bold=bold_name, regular_face=regular_face)
 
 
-def _compute_model_font_size(face: Any | None) -> float:
-    if face is None:
-        return config.GUIDE_MAIN_HEIGHT_PT
-
-    units_per_em = getattr(face, "unitsPerEm", None)
-    y_max_values = []
-
-    try:
-        char_to_glyph = getattr(face, "charToGlyph", {})
-        glyphs = getattr(face, "glyphs", None)
-        if glyphs is not None:
-            for char in ("A", "b"):
-                glyph_index = char_to_glyph.get(ord(char))
-                if glyph_index is None:
-                    continue
-                glyph = glyphs[glyph_index]
-                y_max = getattr(glyph, "yMax", None)
-                if y_max is not None:
-                    y_max_values.append(y_max)
-    except Exception:
-        y_max_values = []
-
-    if units_per_em and y_max_values:
-        ratio = max(y_max_values) / units_per_em
-        if ratio > 0:
-            return config.GUIDE_MAIN_HEIGHT_PT / ratio
-
-    ascent = getattr(face, "ascent", None)
-    if units_per_em and ascent:
-        ratio = ascent / units_per_em
-        if ratio > 0:
-            return config.GUIDE_MAIN_HEIGHT_PT / ratio
-
-    return config.GUIDE_MAIN_HEIGHT_PT
+def fit_font_size_to_height(font_name: str, available_height_pts: float, safety: float) -> float:
+    ascent = pdfmetrics.getAscent(font_name)
+    descent = pdfmetrics.getDescent(font_name)
+    em_height = (ascent - descent) / config.FONT_EM_UNITS
+    if em_height <= 0:
+        return available_height_pts * safety
+    return (available_height_pts / em_height) * safety
 
 
 def _draw_text_line(
@@ -267,7 +240,11 @@ def render_pdf(worksheet: Worksheet, output_path: str | Path, base_dir: str | Pa
     base_dir = Path(base_dir) if base_dir is not None else Path.cwd()
 
     fonts = _register_fonts()
-    model_font_size = _compute_model_font_size(fonts.regular_face)
+    model_font_size = fit_font_size_to_height(
+        fonts.regular,
+        config.GUIDE_MAIN_HEIGHT_PT,
+        config.MODEL_TEXT_SAFETY,
+    )
 
     c = canvas.Canvas(
         str(output_path),
