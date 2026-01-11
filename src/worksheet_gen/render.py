@@ -48,13 +48,33 @@ def _register_fonts() -> FontSet:
     return FontSet(regular=regular_name, bold=bold_name, regular_face=regular_face)
 
 
-def fit_font_size_to_height(font_name: str, available_height_pts: float, safety: float) -> float:
-    ascent = pdfmetrics.getAscent(font_name)
-    descent = pdfmetrics.getDescent(font_name)
-    em_height = (ascent - descent) / config.FONT_EM_UNITS
-    if em_height <= 0:
-        return available_height_pts * safety
-    return (available_height_pts / em_height) * safety
+def fit_font_size_to_guides(
+    font_name: str,
+    main_height_pts: float,
+    desc_height_pts: float,
+    safety: float,
+) -> float:
+    ascent = pdfmetrics.getAscent(font_name)   # 1000-em units
+    descent = pdfmetrics.getDescent(font_name) # negative 1000-em units
+
+    # Fallback if metrics are weird
+    if ascent <= 0:
+        return main_height_pts * safety
+
+    ascent_ratio = ascent / config.FONT_EM_UNITS
+    descent_ratio = (-descent) / config.FONT_EM_UNITS if descent < 0 else 0.0
+
+    # Size constrained by ascenders in the main zone
+    size_from_main = main_height_pts / ascent_ratio
+
+    # Size constrained by descenders in the descender zone (if any)
+    if descent_ratio > 0:
+        size_from_desc = desc_height_pts / descent_ratio
+        size = min(size_from_main, size_from_desc)
+    else:
+        size = size_from_main
+
+    return size * safety
 
 
 def _draw_text_line(
@@ -240,9 +260,10 @@ def render_pdf(worksheet: Worksheet, output_path: str | Path, base_dir: str | Pa
     base_dir = Path(base_dir) if base_dir is not None else Path.cwd()
 
     fonts = _register_fonts()
-    model_font_size = fit_font_size_to_height(
+    model_font_size = fit_font_size_to_guides(
         fonts.regular,
         config.GUIDE_MAIN_HEIGHT_PT,
+        config.GUIDE_DESC_HEIGHT_PT,
         config.MODEL_TEXT_SAFETY,
     )
 
