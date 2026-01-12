@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+from reportlab.lib import colors
+
+
 """
 Configuration for worksheet-gen.
 
@@ -12,10 +17,6 @@ Units:
 - 1 inch = 72 points
 - mm() and inch() helpers convert to points.
 """
-
-from pathlib import Path
-
-from reportlab.lib import colors
 
 # -----------------------------------------------------------------------------
 # Units and conversion helpers
@@ -383,7 +384,7 @@ CARTOON_PLACEHOLDER_STROKE_PT = 1.0
 
 # Ghost model text color (light gray).
 # colors.Color(r,g,b) takes 0.0 to 1.0 float values.
-MODEL_TEXT_COLOR = colors.Color(0.75, 0.75, 0.75)
+MODEL_TEXT_COLOR = colors.Color(0.85, 0.85, 0.85)
 
 # Midline color (dashed).
 MIDLINE_COLOR = colors.grey
