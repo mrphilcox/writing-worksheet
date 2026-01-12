@@ -7,7 +7,7 @@ date_text: "Date: ____________________"
 
 emotion_prompt:
   text: "How does this feel today?"
-  choices: ["Happy", "Okay", "Hard"]
+  choices: ["Easy", "Okay", "Hard"]
 
 reminder_bd:
   title: "Remember:"
