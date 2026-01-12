@@ -9,9 +9,13 @@ description = "Minimal worksheet PDF generator"
 requires-python = ">=3.12"
 dependencies = [
   "fonttools>=4.0",
+  "fastapi>=0.110",
+  "httpx>=0.27",
   "reportlab>=4.0",
   "pydantic>=2.0",
+  "python-multipart>=0.0.9",
   "pyyaml>=6.0",
+  "uvicorn>=0.27",
 ]
 
 [project.scripts]

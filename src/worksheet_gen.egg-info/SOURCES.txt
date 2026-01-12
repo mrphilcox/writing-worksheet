@@ -1,3 +1,4 @@
+README.md
 pyproject.toml
 src/worksheet_gen/__init__.py
 src/worksheet_gen/__main__.py
@@ -6,6 +7,7 @@ src/worksheet_gen/config.py
 src/worksheet_gen/load.py
 src/worksheet_gen/render.py
 src/worksheet_gen/schema.py
+src/worksheet_gen/web.py
 src/worksheet_gen.egg-info/PKG-INFO
 src/worksheet_gen.egg-info/SOURCES.txt
 src/worksheet_gen.egg-info/dependency_links.txt
@@ -13,3 +15,4 @@ src/worksheet_gen.egg-info/entry_points.txt
 src/worksheet_gen.egg-info/requires.txt
 src/worksheet_gen.egg-info/top_level.txt
 tests/test_smoke.py
+tests/test_web_smoke.py

@@ -119,5 +119,9 @@ def load_yaml(path: str | Path) -> Worksheet:
     if not isinstance(raw, dict):
         raise LoadError("input YAML must be a mapping")
 
-    data = _apply_defaults(raw)
+    return load_data(raw)
+
+
+def load_data(data: dict[str, Any]) -> Worksheet:
+    data = _apply_defaults(data)
     return Worksheet.model_validate(data)

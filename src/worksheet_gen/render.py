@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
+from io import BytesIO
 from pathlib import Path
 import sys
 from typing import Any
@@ -324,19 +325,10 @@ def _draw_cartoon(
     return box_left
 
 
-def render_pdf(worksheet: Worksheet, output_path: str | Path, base_dir: str | Path | None = None) -> None:
-    output_path = Path(output_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    base_dir = Path(base_dir) if base_dir is not None else Path.cwd()
-
+def _render_to_canvas(worksheet: Worksheet, c: canvas.Canvas, base_dir: Path) -> None:
     fonts = _register_fonts()
     model_font_size = _compute_model_font_size(fonts.regular, fonts.regular_ttf)
 
-    c = canvas.Canvas(
-        str(output_path),
-        pagesize=(config.PAGE_WIDTH_PT, config.PAGE_HEIGHT_PT),
-        invariant=1,
-    )
     c.setAuthor(config.PDF_AUTHOR)
     c.setSubject(config.PDF_SUBJECT)
     c.setTitle(worksheet.title)
@@ -466,3 +458,30 @@ def render_pdf(worksheet: Worksheet, output_path: str | Path, base_dir: str | Pa
 
     c.showPage()
     c.save()
+
+
+def render_pdf(worksheet: Worksheet, output_path: str | Path, base_dir: str | Path | None = None) -> None:
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    base_dir = Path(base_dir) if base_dir is not None else Path.cwd()
+
+    c = canvas.Canvas(
+        str(output_path),
+        pagesize=(config.PAGE_WIDTH_PT, config.PAGE_HEIGHT_PT),
+        invariant=1,
+    )
+    _render_to_canvas(worksheet, c, base_dir)
+
+
+def render_pdf_bytes(worksheet: Worksheet, base_dir: str | Path | None = None) -> bytes:
+    base_dir = Path(base_dir) if base_dir is not None else Path.cwd()
+    buffer = BytesIO()
+    c = canvas.Canvas(
+        buffer,
+        pagesize=(config.PAGE_WIDTH_PT, config.PAGE_HEIGHT_PT),
+        invariant=1,
+    )
+    _render_to_canvas(worksheet, c, base_dir)
+    data = buffer.getvalue()
+    buffer.close()
+    return data
