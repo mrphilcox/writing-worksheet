@@ -15,6 +15,10 @@ def main(argv: list[str] | None = None) -> None:
     render_parser.add_argument("input", help="Input YAML path")
     render_parser.add_argument("output", help="Output PDF path")
 
+    serve_parser = subparsers.add_parser("serve", help="Run the web preview server")
+    serve_parser.add_argument("--host", default="127.0.0.1", help="Bind host")
+    serve_parser.add_argument("--port", default=8000, type=int, help="Bind port")
+
     args = parser.parse_args(argv)
 
     if args.command == "render":
@@ -22,3 +26,8 @@ def main(argv: list[str] | None = None) -> None:
         output_path = Path(args.output)
         worksheet = load_yaml(input_path)
         render_pdf(worksheet, output_path, base_dir=input_path.resolve().parent)
+    elif args.command == "serve":
+        from .web import app
+        import uvicorn
+
+        uvicorn.run(app, host=args.host, port=args.port)
