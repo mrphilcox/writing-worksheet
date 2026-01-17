@@ -25,10 +25,11 @@ No additional sections or layout changes are permitted unless explicitly configu
 - **Units**: all geometry is defined in points (pt) and/or millimeters (mm). Rendering MUST convert consistently.
 
 ### Margins (content frame)
-- Left margin: **0.6 in**
-- Right margin: **0.6 in**
-- Top margin: **0.5 in**
-- Bottom margin: **0.5 in**
+- Left margin: **0.6 in** (preferred)
+- Right margin: **0.6 in** (preferred)
+- Top margin: **0.5 in** (preferred)
+- Bottom margin: **0.5 in** (preferred)
+- Minimum margin: **10 mm** (reserved border; effective margins clamp to this)
 
 All layout coordinates are relative to this content frame.
 

@@ -99,14 +99,26 @@ PAGE_HEIGHT_PT = inch(11.0)
 # - Left + Right < PAGE_WIDTH_PT
 # - Top + Bottom < PAGE_HEIGHT_PT
 #
-# Practical range for worksheets: 0.4in to 0.8in.
-MARGIN_LEFT_PT = inch(0.6)
-MARGIN_RIGHT_PT = inch(0.6)
-MARGIN_TOP_PT = inch(0.5)
-MARGIN_BOTTOM_PT = inch(0.5)
+# Practical range for worksheets: 10mm to 20mm.
+# The renderer clamps margins to MIN_MARGIN_PT as a lower bound.
+MIN_MARGIN_MM = 10.0
+MIN_MARGIN_PT = mm(MIN_MARGIN_MM)
+
+# Default margins (preferred choices).
+MARGIN_DEFAULT_LEFT_PT = inch(0.6)
+MARGIN_DEFAULT_RIGHT_PT = inch(0.6)
+MARGIN_DEFAULT_TOP_PT = inch(0.5)
+MARGIN_DEFAULT_BOTTOM_PT = inch(0.5)
+
+# Current margin knobs (override to tune, renderer clamps to MIN_MARGIN_PT).
+MARGIN_LEFT_PT = MARGIN_DEFAULT_LEFT_PT
+MARGIN_RIGHT_PT = MARGIN_DEFAULT_RIGHT_PT
+MARGIN_TOP_PT = MARGIN_DEFAULT_TOP_PT
+MARGIN_BOTTOM_PT = MARGIN_DEFAULT_BOTTOM_PT
 
 # Derived content area size.
 # Do not edit directly. Edit margins or page size instead.
+# These are the default content sizes before MIN_MARGIN_PT clamping.
 CONTENT_WIDTH_PT = PAGE_WIDTH_PT - MARGIN_LEFT_PT - MARGIN_RIGHT_PT
 CONTENT_HEIGHT_PT = PAGE_HEIGHT_PT - MARGIN_TOP_PT - MARGIN_BOTTOM_PT
 
@@ -121,7 +133,7 @@ CONTENT_HEIGHT_PT = PAGE_HEIGHT_PT - MARGIN_TOP_PT - MARGIN_BOTTOM_PT
 #
 # Valid range:
 # - > 0
-# - Typically <= CONTENT_WIDTH_PT
+# - Typically <= CONTENT_WIDTH_PT (renderer clamps to effective content width)
 GUIDE_WIDTH_PT = inch(6.8)
 
 # "Main" height of the guide: baseline -> topline (also sometimes called

@@ -32,6 +32,47 @@ class FontMetrics:
     x_height: float
 
 
+@dataclass(frozen=True)
+class LayoutMetrics:
+    margin_left: float
+    margin_right: float
+    margin_top: float
+    margin_bottom: float
+    content_left: float
+    content_right: float
+    content_top: float
+    content_width: float
+    content_height: float
+    guide_width: float
+
+
+def _compute_layout_metrics() -> LayoutMetrics:
+    margin_left = max(config.MARGIN_LEFT_PT, config.MIN_MARGIN_PT)
+    margin_right = max(config.MARGIN_RIGHT_PT, config.MIN_MARGIN_PT)
+    margin_top = max(config.MARGIN_TOP_PT, config.MIN_MARGIN_PT)
+    margin_bottom = max(config.MARGIN_BOTTOM_PT, config.MIN_MARGIN_PT)
+
+    content_left = margin_left
+    content_right = config.PAGE_WIDTH_PT - margin_right
+    content_top = config.PAGE_HEIGHT_PT - margin_top
+    content_width = config.PAGE_WIDTH_PT - margin_left - margin_right
+    content_height = config.PAGE_HEIGHT_PT - margin_top - margin_bottom
+    guide_width = min(config.GUIDE_WIDTH_PT, content_width)
+
+    return LayoutMetrics(
+        margin_left=margin_left,
+        margin_right=margin_right,
+        margin_top=margin_top,
+        margin_bottom=margin_bottom,
+        content_left=content_left,
+        content_right=content_right,
+        content_top=content_top,
+        content_width=content_width,
+        content_height=content_height,
+        guide_width=guide_width,
+    )
+
+
 def _warn(message: str) -> None:
     print(f"warning: {message}", file=sys.stderr)
 
@@ -328,14 +369,15 @@ def _draw_cartoon(
 def _render_to_canvas(worksheet: Worksheet, c: canvas.Canvas, base_dir: Path) -> None:
     fonts = _register_fonts()
     model_font_size = _compute_model_font_size(fonts.regular, fonts.regular_ttf)
+    layout = _compute_layout_metrics()
 
     c.setAuthor(config.PDF_AUTHOR)
     c.setSubject(config.PDF_SUBJECT)
     c.setTitle(worksheet.title)
 
-    content_left = config.MARGIN_LEFT_PT
-    content_right = config.PAGE_WIDTH_PT - config.MARGIN_RIGHT_PT
-    content_top = config.PAGE_HEIGHT_PT - config.MARGIN_TOP_PT
+    content_left = layout.content_left
+    content_right = layout.content_right
+    content_top = layout.content_top
 
     header_right_limit = _draw_cartoon(c, worksheet, base_dir, content_right, content_top)
 
@@ -389,7 +431,7 @@ def _render_to_canvas(worksheet: Worksheet, c: canvas.Canvas, base_dir: Path) ->
         worksheet.reminder_bd.d_line,
         content_left,
         cursor_y,
-        min(config.CONTENT_WIDTH_PT, header_right_limit - content_left),
+        min(layout.content_width, header_right_limit - content_left),
         fonts.regular,
         fonts.bold,
     )
@@ -432,7 +474,7 @@ def _render_to_canvas(worksheet: Worksheet, c: canvas.Canvas, base_dir: Path) ->
                 c,
                 row_top,
                 content_left,
-                config.GUIDE_WIDTH_PT,
+                layout.guide_width,
                 row,
                 worksheet.sentence.model,
                 fonts.regular,

@@ -14,6 +14,8 @@
 | MARGIN_RIGHT_PT | pt | 43.2 | 0.6 × 72 |
 | MARGIN_TOP_PT | pt | 36.0 | 0.5 × 72 |
 | MARGIN_BOTTOM_PT | pt | 36.0 | 0.5 × 72 |
+| MIN_MARGIN_MM | mm | 10.0 | Minimum margin clamp |
+| MIN_MARGIN_PT | pt | 28.3465 | 10 × (72/25.4) |
 | CONTENT_WIDTH_IN | in | 7.3 | 8.5 - 0.6 - 0.6 |
 | CONTENT_WIDTH_PT | pt | 525.6 | 7.3 × 72 |
 | GUIDE_WIDTH_IN | in | 6.8 | Guide row width used in v2 |
