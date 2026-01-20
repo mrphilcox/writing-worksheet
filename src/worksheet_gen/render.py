@@ -205,6 +205,86 @@ def _draw_text_line(
     return baseline_y - gap_after
 
 
+def _wrap_error_message(text: str, max_width: float) -> str:
+    normalized_text = " ".join(text.split())
+    return (
+        f"Trace model sentence does not fit within {config.TRACE_WRAP_MAX_LINES} lines "
+        f"(max width in points: {max_width:.2f}, sentence text length: {len(normalized_text)})."
+    )
+
+
+def wrap_text_to_width(
+    text: str,
+    font_name: str,
+    font_size: float,
+    max_width: float,
+) -> list[str]:
+    normalized_text = " ".join(text.split())
+    if not normalized_text:
+        return [""]
+
+    def text_fits(candidate: str) -> bool:
+        width = pdfmetrics.stringWidth(candidate, font_name, font_size)
+        return width <= max_width + config.TRACE_WRAP_EPSILON_PT
+
+    def break_long_word(word: str) -> list[str]:
+        if (
+            not config.TRACE_WRAP_HARD_BREAK_LONG_WORDS
+            or len(word) < config.TRACE_WRAP_MIN_CHARS_FOR_HARD_BREAK
+        ):
+            raise ValueError(
+                f"{_wrap_error_message(normalized_text, max_width)} "
+                f"Word '{word}' is too long to fit on one line."
+            )
+
+        chunks: list[str] = []
+        current_chunk = ""
+        for char in word:
+            candidate = current_chunk + char
+            if text_fits(candidate):
+                current_chunk = candidate
+                continue
+            if not current_chunk:
+                raise ValueError(
+                    f"{_wrap_error_message(normalized_text, max_width)} "
+                    f"Word '{word}' is too long to fit on one line."
+                )
+            chunks.append(current_chunk)
+            current_chunk = char
+        if current_chunk:
+            chunks.append(current_chunk)
+        return chunks
+
+    words = normalized_text.split(" ")
+    lines: list[str] = []
+    current_line = ""
+
+    for word in words:
+        candidate = f"{current_line} {word}" if current_line else word
+        if text_fits(candidate):
+            current_line = candidate
+            continue
+
+        if not current_line:
+            chunks = break_long_word(word)
+            lines.extend(chunks[:-1])
+            current_line = chunks[-1] if chunks else ""
+            continue
+
+        lines.append(current_line)
+        if text_fits(word):
+            current_line = word
+        else:
+            chunks = break_long_word(word)
+            lines.extend(chunks[:-1])
+            current_line = chunks[-1] if chunks else ""
+
+    if current_line:
+        lines.append(current_line)
+
+    return lines
+
+
 def _draw_emotion_line(
     c: canvas.Canvas,
     prompt: str,
@@ -469,6 +549,57 @@ def _render_to_canvas(worksheet: Worksheet, c: canvas.Canvas, base_dir: Path) ->
 
         rows = list(section.rows)
         for row_index, row in enumerate(rows):
+            if section.type == "trace" and row.model_text and config.TRACE_WRAP_ENABLED:
+                normalized_model = " ".join(worksheet.sentence.model.split())
+                available_width = layout.guide_width - config.GUIDE_TEXT_X_OFFSET_PT
+                text_width = pdfmetrics.stringWidth(
+                    normalized_model,
+                    fonts.regular,
+                    model_font_size,
+                )
+                if text_width <= available_width + config.TRACE_WRAP_EPSILON_PT:
+                    lines = [normalized_model]
+                else:
+                    lines = wrap_text_to_width(
+                        normalized_model,
+                        fonts.regular,
+                        model_font_size,
+                        available_width,
+                    )
+
+                if len(lines) > config.TRACE_WRAP_MAX_LINES:
+                    raise ValueError(_wrap_error_message(normalized_model, available_width))
+
+                if len(lines) > 1:
+                    required_bottom = (
+                        cursor_y
+                        - (config.GUIDE_ROW_HEIGHT_PT * len(lines))
+                        - (config.TRACE_ROW_GAP_PT * (len(lines) - 1))
+                    )
+                    if required_bottom < layout.margin_bottom:
+                        raise ValueError(
+                            "Sentence wrap requires additional rows and does not fit on one page with current layout."
+                        )
+
+                for line_index, line in enumerate(lines):
+                    row_top = cursor_y
+                    cursor_y = _draw_guide_row(
+                        c,
+                        row_top,
+                        content_left,
+                        layout.guide_width,
+                        row,
+                        line,
+                        fonts.regular,
+                        model_font_size,
+                    )
+                    is_last_physical_row = (
+                        row_index == len(rows) - 1 and line_index == len(lines) - 1
+                    )
+                    if not is_last_physical_row:
+                        cursor_y -= config.TRACE_ROW_GAP_PT
+                continue
+
             row_top = cursor_y
             cursor_y = _draw_guide_row(
                 c,

@@ -181,6 +181,7 @@ Font: Helvetica 11 pt. The “Remember:” label is bold.
 - 2 guide rows:
   1. With midline + model text (light gray)
   2. Without midline + model text (light gray)
+- Trace model sentences may wrap to a second guide row when they exceed the guide width; more than two lines is an error.
 
 ### 7) Write section
 - Heading: `Write (5 times):` (Helvetica 11 pt, bold label)

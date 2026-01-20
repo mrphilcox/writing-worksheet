@@ -369,6 +369,32 @@ SECTION_GAP_PT = 10.0
 
 
 # -----------------------------------------------------------------------------
+# Trace model text wrapping
+# -----------------------------------------------------------------------------
+
+# Enable wrapping for trace section model text.
+TRACE_WRAP_ENABLED = True
+
+# Maximum number of guide rows a wrapped trace sentence can occupy.
+# Valid range: >= 1
+# Practical range: 1 to 3
+TRACE_WRAP_MAX_LINES = 2
+
+# Width tolerance to account for floating-point rounding in text metrics.
+# Valid range: >= 0
+# Practical range: 0.0 to 1.0 pt
+TRACE_WRAP_EPSILON_PT = 0.5
+
+# Allow breaking long single words that exceed the guide width.
+TRACE_WRAP_HARD_BREAK_LONG_WORDS = True
+
+# Minimum word length to allow hard-break splitting.
+# Valid range: >= 1
+# Practical range: 8 to 20 characters
+TRACE_WRAP_MIN_CHARS_FOR_HARD_BREAK = 10
+
+
+# -----------------------------------------------------------------------------
 # Cartoon placement (header) and placeholder
 # -----------------------------------------------------------------------------
 
