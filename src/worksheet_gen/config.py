@@ -105,8 +105,8 @@ MIN_MARGIN_MM = 10.0
 MIN_MARGIN_PT = mm(MIN_MARGIN_MM)
 
 # Default margins (preferred choices).
-MARGIN_DEFAULT_LEFT_PT = inch(0.6)
-MARGIN_DEFAULT_RIGHT_PT = inch(0.6)
+MARGIN_DEFAULT_LEFT_PT = inch(0.25)
+MARGIN_DEFAULT_RIGHT_PT = inch(0.25)
 MARGIN_DEFAULT_TOP_PT = inch(0.5)
 MARGIN_DEFAULT_BOTTOM_PT = inch(0.5)
 
@@ -134,7 +134,7 @@ CONTENT_HEIGHT_PT = PAGE_HEIGHT_PT - MARGIN_TOP_PT - MARGIN_BOTTOM_PT
 # Valid range:
 # - > 0
 # - Typically <= CONTENT_WIDTH_PT (renderer clamps to effective content width)
-GUIDE_WIDTH_PT = inch(6.8)
+GUIDE_WIDTH_PT = inch(8.0)
 
 # "Main" height of the guide: baseline -> topline (also sometimes called
 # the cap-height zone in handwriting paper).
@@ -142,7 +142,7 @@ GUIDE_WIDTH_PT = inch(6.8)
 # Valid range:
 # - > 0
 # - Common handwriting main heights: 12mm to 20mm depending on age.
-GUIDE_MAIN_HEIGHT_PT = mm(15.0)
+GUIDE_MAIN_HEIGHT_PT = mm(10.0)
 
 # Ratio that allocates part of the row below the baseline for descenders (g, y, p).
 # GUIDE_DESC_HEIGHT_PT = GUIDE_MAIN_HEIGHT_PT * GUIDE_DESC_RATIO
@@ -197,7 +197,7 @@ GUIDE_MIDLINE_DASH_OFF_PT = 3.0
 # - >= 0
 # Practical range:
 # - 2 to 10 pt
-GUIDE_TEXT_X_OFFSET_PT = 4.0
+GUIDE_TEXT_X_OFFSET_PT =2.0
 
 # Whether to draw a topline at all.
 # Some worksheets use baseline + midline only.
@@ -243,7 +243,7 @@ SENTENCE_DISPLAY_SIZE_PT = 14.0
 # - 0.96 for "bigger but safe"
 # - 0.98 for "tight / near-max"
 # - 1.00 for "fill the guides as much as possible"
-MODEL_TEXT_SAFETY = 1.0
+MODEL_TEXT_SAFETY = 0.96
 
 # Font metrics are typically expressed in "units per em".
 # Some ReportLab APIs use a 1000-unit convention; fonttools reads actual unitsPerEm.
@@ -268,9 +268,9 @@ X_HEIGHT_FALLBACK_RATIO = 0.52
 
 # Vertical gaps controlling header block layout.
 # Valid range: >= 0
-HEADER_TITLE_GAP_PT = 6.0      # Space under the title line
-HEADER_LINE_GAP_PT = 4.0       # Space between "Name" and "Date" lines
-HEADER_BLOCK_GAP_PT = 8.0      # Space after header before next block
+HEADER_TITLE_GAP_PT = 10.0      # Space under the title line
+HEADER_LINE_GAP_PT = 10.0       # Space between "Name" and "Date" lines
+HEADER_BLOCK_GAP_PT = 15.0      # Space after header before next block
 
 
 # -----------------------------------------------------------------------------
@@ -340,7 +340,7 @@ SENTENCE_LABEL_GAP_PT = 4.0
 
 # Gap between a section title and its first row.
 # Valid range: >= 0
-SECTION_TITLE_GAP_PT = 6.0
+SECTION_TITLE_GAP_PT = 15.0
 
 
 # -----------------------------------------------------------------------------
@@ -349,7 +349,7 @@ SECTION_TITLE_GAP_PT = 6.0
 
 # Vertical gap between trace rows.
 # Valid range: >= 0
-TRACE_ROW_GAP_PT = 6.0
+TRACE_ROW_GAP_PT = 10.0
 
 # Gap between the trace section and the write section.
 # Valid range: >= 0
@@ -360,8 +360,8 @@ TRACE_TO_WRITE_GAP_PT = 8.0
 # a midline (midline rows can look "busier").
 #
 # Valid range: >= 0
-WRITE_ROW_GAP_MIDLINE_PT = 6.0
-WRITE_ROW_GAP_NO_MIDLINE_PT = 8.0
+WRITE_ROW_GAP_MIDLINE_PT = 10.0
+WRITE_ROW_GAP_NO_MIDLINE_PT = 18.0
 
 # Gap between major sections (if multiple sections exist).
 # Valid range: >= 0
@@ -373,7 +373,7 @@ SECTION_GAP_PT = 10.0
 # -----------------------------------------------------------------------------
 
 # Enable wrapping for trace section model text.
-TRACE_WRAP_ENABLED = True
+TRACE_WRAP_ENABLED = False
 
 # Maximum number of guide rows a wrapped trace sentence can occupy.
 # Valid range: >= 1
@@ -457,7 +457,7 @@ DEFAULT_DATE_EN = "Date: ____________________"
 DEFAULT_DATE_FR = "Date : ____________________"
 
 DEFAULT_EMOTION_TEXT_EN = "How does this feel today?"
-DEFAULT_EMOTION_CHOICES_EN = ["Happy", "Okay", "Hard"]
+DEFAULT_EMOTION_CHOICES_EN = ["Easy", "Okay", "Hard"]
 
 DEFAULT_REMINDER_TITLE_EN = "Remember:"
 DEFAULT_REMINDER_B_LINE_EN = "b = stick first, then circle (ball)"
