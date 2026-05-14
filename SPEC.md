@@ -2,232 +2,195 @@
 
 ## Overview
 
-This spec defines the **v2 handwriting worksheet layout** as iterated in this thread. The generator MUST produce deterministic, print-stable PDFs via ReportLab.
+This document describes the current v2 handwriting worksheet layout implemented
+by `worksheet_gen.render`.
 
-The v2 worksheet is **one page** and contains, in order:
+The generator produces deterministic, print-stable PDFs via ReportLab. A
+worksheet is one US Letter portrait page containing:
 
 1. Title
-2. Date line
-3. Emotions check-in (3 choices)
-4. b/d reminder with “ball” and “dog”
-5. Sentence (display)
-6. Trace section: 2 guide rows (row 1 with midline, row 2 without)
-7. Write section: 5 guide rows (first 3 with midline, last 2 without)
+2. Name line
+3. Date line
+4. Emotions check-in
+5. b/d reminder box
+6. Sentence display
+7. Trace section
+8. Write section
 
-No additional sections or layout changes are permitted unless explicitly configured and accepted later.
-
----
+Optional cartoon art may be placed in the top-right header area.
 
 ## Page
 
-- **Paper**: US Letter (8.5 × 11 in)
-- **Orientation**: Portrait
-- **Units**: all geometry is defined in points (pt) and/or millimeters (mm). Rendering MUST convert consistently.
+- Paper: US Letter, 8.5 x 11 in
+- Orientation: portrait
+- Internal units: points
+- PDF size: 612 x 792 pt
+- Deterministic output: ReportLab canvas uses `invariant=1`
 
-### Margins (content frame)
-- Left margin: **0.6 in** (preferred)
-- Right margin: **0.6 in** (preferred)
-- Top margin: **0.5 in** (preferred)
-- Bottom margin: **0.5 in** (preferred)
-- Minimum margin: **10 mm** (reserved border; effective margins clamp to this)
+### Margins
 
-All layout coordinates are relative to this content frame.
+Configured defaults:
 
----
+- Left: 0.25 in
+- Right: 0.25 in
+- Top: 0.5 in
+- Bottom: 0.5 in
+
+The renderer clamps each margin to `MIN_MARGIN_MM`, currently 10 mm. Effective
+left/right margins are therefore 10 mm unless the configured values are raised.
 
 ## Typography
 
 ### Fonts
 
-#### Primary font for handwriting content
-- **Family name**: Andika (Regular)
-- **Font file**: `Andika-Regular.ttf` (or equivalent regular upright face)
-- **Used for**:
-  - the sentence display line (read-only)
-  - the model/tracing text inside guide rows
-
-#### UI / headings font
-- **Family**: Helvetica
-- **Used for**:
-  - Title (header)
-  - Body labels/headings (“Sentence:”, “Trace…”, “Write…”)
-  - Emotions line and reminder block
+- Andika Regular: sentence display and trace model text.
+- Andika Bold: headings when available.
+- Helvetica / Helvetica-Bold: fallback fonts when bundled TTF files are missing.
 
 ### Font sizes
 
-- Title: **16 pt** (Helvetica)
-- Date line: **11 pt** (Helvetica)
-- Body text: **11 pt** (Helvetica)
-- Sentence display line: **14 pt** (Andika Regular)
-- Model/tracing text inside guide rows: **computed dynamically** (Andika Regular), calibrated so that the glyph height of `max('A','b')` touches the topline.
+- Title: 16 pt
+- Body text and labels: 11 pt
+- Sentence display: 14 pt
+- Trace model text: computed from font metrics and guide geometry
 
-#### Model/tracing text size calibration rule (critical)
+Trace model text is sized from the available cap-height area and descender
+space, then multiplied by `MODEL_TEXT_SAFETY` (`0.96`). If TrueType metrics are
+unavailable, the renderer falls back to ReportLab ascent/descent metrics.
 
-The model text MUST be sized so that:
-- The **baseline** aligns exactly to the worksheet **baseline**.
-- The **reference glyph** top reaches the worksheet **topline**.
+## Colors
 
-Reference glyph choice:
-- Compute `yMax` for glyphs “A” and “b” from the TrueType font (fontTools).
-- Let `yMax_ref = max(yMax('A'), yMax('b'))`.
-- Let `units_per_em` come from the font `head.unitsPerEm`.
-- Let `ratio = yMax_ref / units_per_em`.
+All rendered PDF colors are grayscale or black:
 
-Then for a given guide main height (baseline → topline):
-- `font_size_pt = main_height_pt / ratio`
+- Primary guide lines: black
+- Midline: ReportLab `grey`
+- Trace model text: RGB `0.85, 0.85, 0.85`
+- General text and reminder border: black
 
-This ensures:
-- “A” and “b” extend from baseline to topline as expected.
-- Descenders (e.g., “y”) naturally fall below baseline into the descender area.
+## Handwriting Guide Rows
 
-### Color / grayscale
+Each guide row contains:
 
-All colors are grayscale for print stability.
+- Baseline: solid black line, 1.0 pt
+- Topline: solid black line, 1.0 pt, controlled by `GUIDE_DRAW_TOPLINE`
+- Optional midline: dashed grey line, 0.8 pt, dash pattern 3 pt on / 3 pt off
+- Descender space below the baseline with no extra bottom line
 
-- Primary lines (baseline + topline): **black** (RGB 0,0,0)
-- Midline: **gray** (ReportLab `grey`, nominal RGB ~0.5,0.5,0.5)
-- Model/tracing text: **light gray** (RGB **0.75, 0.75, 0.75**)
-- Other UI text: **black**
+Geometry:
 
-No transparency is required; use solid RGB values (print-stable across viewers/printers).
+- Main height, baseline to topline: 10 mm
+- Descender height: `0.45 * main height`
+- Internal padding above topline: 2 mm
+- Total row height: 16.5 mm
+- Midline position: halfway between baseline and topline (`MIDLINE_RATIO = 0.5`)
+- Model text left inset: 2 pt
 
----
+Guide width is configured as 8.0 in and clamped to the effective content width.
 
-## Handwriting guide system (precise)
+## Worksheet Sections
 
-Each “guide row” is a handwriting practice band with **two solid lines** and an optional dashed midline.
+### Title
 
-### Lines per row
+Rendered at the top-left of the content frame using the configured title.
+Default English title:
 
-- **Topline**: solid line
-- **Baseline**: solid line
-- **Midline (optional)**: dashed line halfway between baseline and topline
-- **No extra bottom line**: there is additional blank descender space below the baseline but no additional line.
+`Abby’s Handwriting Practice – English`
 
-### Vertical geometry per row
+### Name Line
 
-Define:
+Rendered below the title:
 
-- `main_height` = distance from **baseline** to **topline**
-- `descender_height` = extra blank space **below baseline**
+`Name: ____________________`
 
-In v2:
-- `main_height = 15 mm` (baseline → topline)
-- `descender_height = 0.45 * main_height` (below baseline)
-- `row_internal_pad_top = 2 mm` (blank space above topline inside the row box)
+If `child_name` is provided, it replaces the underline placeholder.
 
-So row height is:
-- `row_height = descender_height + main_height + row_internal_pad_top`
+### Date Line
 
-Midline position:
-- `midline_y = baseline_y + main_height / 2`
+Rendered below the name line. Default English text:
 
-### Stroke weights and dash patterns
+`Date: ____________________`
 
-- Baseline:
-  - stroke width: **1.0 pt**
-  - solid
-- Topline:
-  - stroke width: **1.0 pt**
-  - solid
-- Midline (when enabled):
-  - stroke width: **0.8 pt**
-  - dash pattern: **3 pt on, 3 pt off**
+### Emotions Check-in
 
-### Model/tracing text placement
+Default English prompt and choices:
 
-- Text is drawn with `drawString()`.
-- X offset from guide left edge: **4 pt**
-- Y position: exactly at **baseline_y**
-- Fill color: light gray (RGB 0.75)
+`How does this feel today?` with `Easy`, `Okay`, `Hard`
 
----
+Choices are drawn as circle controls followed by labels.
 
-## Worksheet sections (order, headings, allocation)
+### b/d Reminder
 
-### 1) Title
-- Text: `Abby’s Handwriting Practice – English`
-- Font: Helvetica 16 pt
-- Positioned at top of content frame.
+Rendered in a bordered box. Default English copy:
 
-### 2) Date line
-- Text: `Date: ____________________`
-- Font: Helvetica 11 pt
-- Immediately below title.
+- `Remember:`
+- `b = stick first, then circle (ball)`
+- `d = circle first, then stick (dog)`
 
-### 3) Emotions line
-- Text: `How does this feel today?  ◯ Happy   ◯ Okay   ◯ Hard`
-- Font: Helvetica 11 pt
+### Sentence Display
 
-### 4) b/d reminder block
-Rendered as a short 2-line reminder. Exact v2 wording:
+The label `Sentence:` is rendered in bold, followed by `sentence.display` in the
+regular handwriting font at 14 pt.
 
-- Heading: `Remember:`
-- Lines:
-  - `b = stick first, then circle (ball)`
-  - `d = circle first, then stick (dog)`
+### Trace Section
 
-Font: Helvetica 11 pt. The “Remember:” label is bold.
+Default heading:
 
-### 5) Sentence display
-- Heading: `Sentence:`
-- Sentence text (v2 micro-sentence):
-  - `Abby bakes bread.`
-- Heading uses Helvetica 11 pt.
-- Sentence uses Andika 14 pt.
+`Trace (2 times):`
 
-### 6) Trace section
-- Heading: `Trace (2 times):` (Helvetica 11 pt, bold label)
-- 2 guide rows:
-  1. With midline + model text (light gray)
-  2. Without midline + model text (light gray)
-- Trace model sentences may wrap to a second guide row when they exceed the guide width; more than two lines is an error.
+Default rows:
 
-### 7) Write section
-- Heading: `Write (5 times):` (Helvetica 11 pt, bold label)
-- 5 guide rows:
-  - Rows 1–3: with midline (no model text)
-  - Rows 4–5: without midline (no model text)
+- Row 1: midline enabled, model text enabled
+- Row 2: midline disabled, model text enabled
 
-### Footer / header extras
-- None in v2 beyond the title/date/emotions/reminder/sentence.
+Trace wrapping helpers exist in `render.py`. Rendering only applies wrapped
+trace rows when `TRACE_WRAP_ENABLED` is set to true in `config.py`.
 
----
+### Write Section
 
-## Spacing rules (exact, v2)
+Default heading:
 
-Spacing uses fixed point values between blocks:
+`Write (5 times):`
 
-- After “Trace row 1” and “Trace row 2”: **6 pt**
-- After “Trace section” before “Write section”: **8 pt**
-- Between write rows 1–3: **6 pt**
-- Between write rows 4–5: **8 pt**
-- A small spacer is used between major blocks (title/date/emotions/reminder/sentence/trace/write) consistent with the current generator.
+Default rows:
 
----
+- Rows 1-3: midline enabled, no model text
+- Rows 4-5: midline disabled, no model text
 
-## Cartoon line art feature (defined but OFF by default)
+Write rows with `model_text: true` are rejected by schema validation.
 
-Status in v2:
-- Not required to render (default: none), but schema supports it.
+## Spacing
 
-If provided, the renderer MUST:
-- Place a single line-art image in the **top-right area of the header block** (inside the content frame).
-- It must not overlap the title/date/emotions/reminder/sentence.
+Current spacing constants:
 
-Constraints:
-- Maximum bounding box: **1.5 in × 1.5 in**
-- Padding from top/right edges of content frame: **6 mm**
-- Style: line art intended to be colorable
-- Opacity: solid grayscale line art (no transparency requirement); recommended stroke gray ~0.6 if needed
-- Format: SVG preferred; renderer may rasterize deterministically to a fixed DPI if necessary.
+- Title to name line: 10 pt
+- Name to date line: 10 pt
+- Date/emotion/reminder block gaps: 15 pt major header gap
+- Reminder title gap: 4 pt
+- Reminder line gap: 3 pt
+- Sentence label to sentence text: 4 pt
+- Section title to first row: 15 pt
+- Trace row gap: 10 pt
+- Trace-to-write gap: 8 pt
+- Write row gap when adjacent rows both have midlines: 10 pt
+- Write row gap otherwise: 18 pt
 
----
+## Cartoon Art
 
-## Determinism requirements
+Cartoon art is optional and disabled by default. When enabled:
+
+- Placement: top-right header area
+- Supported rendered image format: PNG
+- Default max size: 1.5 x 1.5 in
+- Padding from content top/right: 6 mm
+
+If the configured asset is missing, omitted, or not a PNG, the renderer emits a
+warning and draws a placeholder rectangle.
+
+## Determinism Requirements
 
 - No randomness.
-- All coordinates derived from constants + content.
-- Font metrics read from the specified font file.
-- Output must be stable across runs given identical inputs.
-
+- All coordinates derive from configuration constants and worksheet content.
+- Font metrics are read from the configured TTF when available.
+- PDF canvas uses invariant mode.
+- Given identical inputs, config, fonts, and assets, output should be stable
+  across runs.

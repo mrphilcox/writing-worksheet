@@ -1,262 +1,237 @@
 # TUNING.md
-Layout and Visual Tuning Guide
 
-This document explains how to adjust the appearance of the worksheet PDFs by
-editing values in `src/worksheet_gen/config.py`.
+Layout and visual tuning is centralized in `src/worksheet_gen/config.py`.
 
-The guiding rule is simple:
+The guiding rule:
 
-> If you want the worksheet to *look* different, you should only need to edit
-> config.py.
+> If the worksheet should look different, first try changing `config.py`.
 
-No changes to rendering code should be required for normal layout iteration.
+Rendering code should only change when the layout model itself needs new
+behavior.
 
----
+## Workflow
 
-## Mental model
+1. Render a baseline PDF into `out/`.
+2. Identify one visual issue.
+3. Change one config knob.
+4. Re-render and compare at 100% zoom or on paper.
+5. Repeat.
 
-Each handwriting row is built from three vertical zones:
+Changing several knobs at once makes it harder to understand which adjustment
+helped.
 
-1. **Main zone**  
-   Baseline → Topline  
-   Used for capitals and tall lowercase letters (b, d, h, k).
+## Page and margins
 
-2. **Descender zone**  
-   Baseline → Bottom of row  
-   Used for g, y, p, j.
+`MARGIN_LEFT_PT`, `MARGIN_RIGHT_PT`, `MARGIN_TOP_PT`, and `MARGIN_BOTTOM_PT`
+control the configured content inset. The renderer clamps each side to
+`MIN_MARGIN_PT`, currently 10 mm, so setting a smaller margin will not reduce
+the effective margin unless the clamp is also changed.
 
-3. **Pad-top zone**  
-   Extra air above the topline  
-   Prevents tall letters from feeling cramped.
+`GUIDE_WIDTH_PT` controls the requested guide width. The renderer clamps it to
+the effective content width.
 
-If something looks off, ask yourself:
-- Is it too tall or too short?
-- Is it cramped vertically or too airy?
-- Is spacing between elements too dense?
+## Handwriting row model
 
-Then adjust the matching knob below.
+Each row is built from three vertical zones:
 
----
+- Main zone: baseline to topline, used by capitals and tall lowercase letters.
+- Descender zone: baseline downward, used by letters like `g`, `y`, `p`, and
+  `j`.
+- Top padding: extra air above the topline.
 
-## Most commonly adjusted knobs
+### Letters are too small or too big
 
-### “The letters are too small / too big”
-**Primary knob:**
+Primary knob:
+
 ```python
 MODEL_TEXT_SAFETY
 ```
 
-- Increases or decreases ghost (model) text uniformly.
-- Safe tuning range: `0.95` to `1.02`
-- Typical values:
-  - 0.96 – conservative, lots of white space
-  - 0.98 – tight but safe
-  - 1.00 – fills the guides confidently
+This multiplier is applied after model text size is computed from font metrics.
+The current value is `0.96`.
 
-Change this first before touching guide geometry.
+Practical range: `0.95` to `1.02`.
 
----
+### Rows are too short or too tall
 
-### “The rows feel too short / too tall”
-**Primary knob:**
+Primary knob:
+
 ```python
 GUIDE_MAIN_HEIGHT_PT
 ```
 
-- Controls the baseline → topline distance.
-- Larger value = taller writing rows.
-- Typical handwriting ranges:
-  - Younger kids: 16–20 mm
-  - Older kids: 12–15 mm
+This controls baseline-to-topline distance. The current value is 10 mm.
 
-Example:
-```python
-GUIDE_MAIN_HEIGHT_PT = mm(17.0)
-```
+Typical handwriting range: 10-20 mm.
 
----
+### Descenders are cramped or too deep
 
-### “Descenders are cramped or too deep”
-**Primary knob:**
+Primary knob:
+
 ```python
 GUIDE_DESC_RATIO
 ```
 
-- Fraction of main height allocated below the baseline.
-- Typical range: `0.30` to `0.55`
+The current value is `0.45`, meaning descender space is 45% of the main guide
+height.
 
-Examples:
-- Fewer descenders (cleaner look): `0.35`
-- Generous descenders: `0.50`
+Practical range: `0.30` to `0.60`.
 
----
+### Letters feel cramped near the topline
 
-### “Letters feel cramped near the topline”
-**Primary knob:**
+Primary knob:
+
 ```python
 GUIDE_PAD_TOP_PT
 ```
 
-- Adds breathing room above the topline.
-- Does not move any guide lines.
-- Typical range: `0mm` to `4mm`
+This adds air above the topline without moving the baseline-to-topline distance.
+The current value is 2 mm.
 
-This is a good knob when things are *almost* right.
+Practical range: 0-4 mm.
 
----
+### Midline feels too high or too low
 
-### “Midline feels too high or too low”
-**Primary knob:**
+Primary knob:
+
 ```python
 MIDLINE_RATIO
 ```
 
-- Fraction of main height where the midline is drawn.
-- `0.5` = centered
-- Typical handwriting values: `0.45`–`0.60`
-
-Lower values give more space above the midline.
-
----
+`0.5` places the midline halfway between baseline and topline. Values below
+`0.5` move it toward the baseline; values above `0.5` move it toward the
+topline.
 
 ## Spacing and density
 
-### “Rows are too close together”
-**Knobs:**
+### Rows are too close together
+
+Knobs:
+
 ```python
 TRACE_ROW_GAP_PT
 WRITE_ROW_GAP_MIDLINE_PT
 WRITE_ROW_GAP_NO_MIDLINE_PT
 ```
 
-- Increase these for a lighter, less dense page.
-- Decrease for more rows per page.
+The current defaults are 10 pt, 10 pt, and 18 pt.
 
----
+### Sections feel cramped
 
-### “Sections feel cramped”
-**Knobs:**
+Knobs:
+
 ```python
 SECTION_TITLE_GAP_PT
 SECTION_GAP_PT
 TRACE_TO_WRITE_GAP_PT
 ```
 
-These control breathing room between logical blocks.
+These control breathing room around section headings and between section groups.
 
----
+### Header feels crowded
 
-## Header and top-of-page tuning
+Knobs:
 
-### “Header feels crowded”
-**Knobs:**
 ```python
 HEADER_TITLE_GAP_PT
 HEADER_LINE_GAP_PT
 HEADER_BLOCK_GAP_PT
 ```
 
-- Increase to make the page feel calmer.
-- Decrease to fit more content on one page.
+The current header includes title, name, date, emotions prompt, reminder box,
+and sentence display.
 
----
+## Emotion prompt
 
-## Emotion prompt tuning
+Circle size:
 
-### “Circles look too big / too small”
-**Knob:**
 ```python
 EMOTION_CIRCLE_RADIUS_PT
 ```
 
-Typical range: `4` to `8`.
+Circle alignment:
 
----
-
-### “Circle alignment feels off relative to text”
-**Knob:**
 ```python
 EMOTION_CIRCLE_CENTER_OFFSET_PT
 ```
 
-Positive moves the circle up, negative moves it down.
+Choice spacing:
 
----
+```python
+EMOTION_PROMPT_GAP_PT
+EMOTION_LABEL_GAP_PT
+EMOTION_CHOICE_GAP_PT
+```
 
-## Reminder box tuning
+## Reminder box
 
-### “Reminder box feels tight”
-**Knob:**
+Padding:
+
 ```python
 REMINDER_BOX_PADDING_PT
 ```
 
-Increase for a softer, friendlier look.
+Internal line spacing:
 
----
-
-### “Lines in reminder box are too close”
-**Knob:**
 ```python
+REMINDER_TITLE_GAP_PT
 REMINDER_LINE_GAP_PT
 ```
 
----
-
 ## Cartoon placement
 
-### “Cartoon is too dominant”
-**Knobs:**
+Maximum size:
+
 ```python
 CARTOON_MAX_W_IN
 CARTOON_MAX_H_IN
 ```
 
-Lower these to keep the worksheet focused on writing.
+Padding from the content top/right:
 
----
+```python
+CARTOON_PAD_PT
+```
 
-## What NOT to tune casually
+The current renderer draws PNG assets. Missing or unsupported assets produce a
+placeholder rectangle.
 
-Avoid changing these unless you know why:
+## Trace wrapping
+
+Trace wrapping helpers exist in `render.py`, but render-time wrapping is gated
+by:
+
+```python
+TRACE_WRAP_ENABLED
+```
+
+When enabled, wrapping uses:
+
+```python
+TRACE_WRAP_MAX_LINES
+TRACE_WRAP_EPSILON_PT
+TRACE_WRAP_HARD_BREAK_LONG_WORDS
+TRACE_WRAP_MIN_CHARS_FOR_HARD_BREAK
+```
+
+Keep `TRACE_WRAP_MAX_LINES` low enough that the worksheet still fits on one
+page.
+
+## Knobs to change cautiously
+
+Avoid changing these unless you are intentionally changing font metric behavior:
 
 - `FONT_EM_UNITS`
 - `CAP_HEIGHT_FALLBACK_RATIO`
 - `X_HEIGHT_FALLBACK_RATIO`
-- Any font metric logic in `render.py`
-
-These exist to make typography math stable across fonts.
-
----
-
-## Recommended tuning workflow
-
-1. Render `out/test.pdf`
-2. Identify *one* visual problem
-3. Change *one* knob in `config.py`
-4. Re-render
-5. Repeat
-
-If you find yourself changing more than 2–3 knobs at once, step back and reassess.
-
----
+- font metric logic in `render.py`
 
 ## When to change code instead of config
 
-You probably need code changes if:
-- A new block or section type is required
-- Layout logic is fundamentally wrong (overlap, clipping)
-- You want different behavior per section type, not global tuning
+Code changes are appropriate when:
 
-For everything else, config.py is the right place.
-
----
-
-## Philosophy
-
-This project intentionally trades pixel perfection for:
-- fast iteration
-- clarity
-- maintainability
-
-If a worksheet looks “90% right” and is easy to tune, that is success.
+- A new block or section type is required.
+- Layout behavior needs to vary per section or per row beyond existing schema
+  fields.
+- Content overlaps or clips despite reasonable config values.
+- A new asset format needs renderer support.
