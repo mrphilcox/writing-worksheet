@@ -8,6 +8,7 @@ from .render import render_pdf
 
 
 def main(argv: list[str] | None = None) -> None:
+    """Parse CLI arguments and dispatch to the renderer or local web server."""
     parser = argparse.ArgumentParser(prog="worksheet-gen")
     subparsers = parser.add_subparsers(dest="command", required=True)
 

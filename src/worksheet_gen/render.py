@@ -19,6 +19,8 @@ from .schema import Worksheet
 
 @dataclass(frozen=True)
 class FontSet:
+    """ReportLab font names and the TTF path used for metric calculations."""
+
     regular: str
     bold: str
     regular_ttf: Path | None
@@ -26,6 +28,8 @@ class FontSet:
 
 @dataclass(frozen=True)
 class FontMetrics:
+    """Subset of TrueType metrics needed to size handwriting model text."""
+
     units_per_em: float
     descent: float
     cap_height: float
@@ -34,6 +38,8 @@ class FontMetrics:
 
 @dataclass(frozen=True)
 class LayoutMetrics:
+    """Effective page geometry after applying margin and width clamps."""
+
     margin_left: float
     margin_right: float
     margin_top: float
@@ -47,6 +53,7 @@ class LayoutMetrics:
 
 
 def _compute_layout_metrics() -> LayoutMetrics:
+    """Compute the effective content frame used by the renderer."""
     margin_left = max(config.MARGIN_LEFT_PT, config.MIN_MARGIN_PT)
     margin_right = max(config.MARGIN_RIGHT_PT, config.MIN_MARGIN_PT)
     margin_top = max(config.MARGIN_TOP_PT, config.MIN_MARGIN_PT)
@@ -74,10 +81,12 @@ def _compute_layout_metrics() -> LayoutMetrics:
 
 
 def _warn(message: str) -> None:
+    """Emit renderer warnings without interrupting PDF generation."""
     print(f"warning: {message}", file=sys.stderr)
 
 
 def _register_fonts() -> FontSet:
+    """Register configured TTF fonts, falling back to built-in PDF fonts."""
     regular_name = config.FONT_REGULAR_NAME
     bold_name = config.FONT_BOLD_NAME
     regular_ttf = None
@@ -101,6 +110,7 @@ def _register_fonts() -> FontSet:
 
 
 def fit_font_size_to_height(font_name: str, available_height_pts: float, safety: float) -> float:
+    """Fit a font's ascent/descent box into a target height."""
     ascent = pdfmetrics.getAscent(font_name)
     descent = pdfmetrics.getDescent(font_name)
     em_height = (ascent - descent) / config.FONT_EM_UNITS
@@ -111,6 +121,7 @@ def fit_font_size_to_height(font_name: str, available_height_pts: float, safety:
 
 @lru_cache(maxsize=None)
 def _load_font_metrics(font_path: str) -> FontMetrics:
+    """Read TrueType metrics used by `_compute_model_font_size`."""
     font = FontToolsTTFont(font_path)
     try:
         head = font["head"]
@@ -155,6 +166,7 @@ def _load_font_metrics(font_path: str) -> FontMetrics:
 
 
 def _compute_model_font_size(font_name: str, font_path: Path | None) -> float:
+    """Choose trace model text size from cap-height and descender constraints."""
     available_cap_height_pts = config.GUIDE_MAIN_HEIGHT_PT + config.GUIDE_PAD_TOP_PT
 
     if font_path is None or not font_path.exists():
@@ -198,6 +210,7 @@ def _draw_text_line(
     font_size: float,
     gap_after: float,
 ) -> float:
+    """Draw a single text line and return the next top cursor position."""
     baseline_y = y_top - font_size
     c.setFont(font_name, font_size)
     c.setFillColor(config.TEXT_COLOR)
@@ -206,6 +219,7 @@ def _draw_text_line(
 
 
 def _wrap_error_message(text: str, max_width: float) -> str:
+    """Build the validation message for trace text that cannot fit."""
     normalized_text = " ".join(text.split())
     return (
         f"Trace model sentence does not fit within {config.TRACE_WRAP_MAX_LINES} lines "
@@ -219,6 +233,7 @@ def wrap_text_to_width(
     font_size: float,
     max_width: float,
 ) -> list[str]:
+    """Split text into lines that fit a ReportLab font width."""
     normalized_text = " ".join(text.split())
     if not normalized_text:
         return [""]
@@ -293,6 +308,7 @@ def _draw_emotion_line(
     y_top: float,
     font_name: str,
 ) -> float:
+    """Draw the emotion prompt and three circle choice controls."""
     baseline_y = y_top - config.BODY_SIZE_PT
     c.setFont(font_name, config.BODY_SIZE_PT)
     c.setFillColor(config.TEXT_COLOR)
@@ -326,6 +342,7 @@ def _draw_reminder_box(
     regular_font: str,
     bold_font: str,
 ) -> float:
+    """Draw the bordered b/d reminder block."""
     title_y = y_top - config.REMINDER_BOX_PADDING_PT - config.BODY_SIZE_PT
     line_one_y = title_y - config.REMINDER_TITLE_GAP_PT - config.BODY_SIZE_PT
     line_two_y = line_one_y - config.REMINDER_LINE_GAP_PT - config.BODY_SIZE_PT
@@ -357,6 +374,7 @@ def _draw_guide_row(
     font_name: str,
     model_font_size: float,
 ) -> float:
+    """Draw one handwriting guide row and return its bottom y-coordinate."""
     topline_y = row_top - config.GUIDE_PAD_TOP_PT
     baseline_y = topline_y - config.GUIDE_MAIN_HEIGHT_PT
     row_bottom = row_top - config.GUIDE_ROW_HEIGHT_PT
@@ -387,6 +405,7 @@ def _draw_guide_row(
 
 
 def _resolve_asset_path(asset: str | None, base_dir: Path) -> Path | None:
+    """Resolve a YAML asset path relative to YAML first, then repo root."""
     if not asset:
         return None
     path = Path(asset)
@@ -405,6 +424,7 @@ def _draw_cartoon(
     content_right: float,
     content_top: float,
 ) -> float:
+    """Draw the optional header cartoon or its placeholder."""
     if worksheet.cartoon is None or not worksheet.cartoon.enabled:
         return content_right
 
@@ -447,6 +467,7 @@ def _draw_cartoon(
 
 
 def _render_to_canvas(worksheet: Worksheet, c: canvas.Canvas, base_dir: Path) -> None:
+    """Render a complete worksheet onto an open ReportLab canvas."""
     fonts = _register_fonts()
     model_font_size = _compute_model_font_size(fonts.regular, fonts.regular_ttf)
     layout = _compute_layout_metrics()
@@ -634,6 +655,7 @@ def _render_to_canvas(worksheet: Worksheet, c: canvas.Canvas, base_dir: Path) ->
 
 
 def render_pdf(worksheet: Worksheet, output_path: str | Path, base_dir: str | Path | None = None) -> None:
+    """Render a worksheet model to a PDF file."""
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     base_dir = Path(base_dir) if base_dir is not None else Path.cwd()
@@ -647,6 +669,7 @@ def render_pdf(worksheet: Worksheet, output_path: str | Path, base_dir: str | Pa
 
 
 def render_pdf_bytes(worksheet: Worksheet, base_dir: str | Path | None = None) -> bytes:
+    """Render a worksheet model and return PDF bytes for web responses."""
     base_dir = Path(base_dir) if base_dir is not None else Path.cwd()
     buffer = BytesIO()
     c = canvas.Canvas(

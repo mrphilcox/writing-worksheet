@@ -14,6 +14,7 @@ app = FastAPI()
 MAX_SENTENCE_LEN = 200
 
 def _html_page() -> str:
+    """Return the single-page form used for preview and download."""
     title_placeholder = html.escape(config.DEFAULT_TITLE_EN)
     date_placeholder = html.escape(config.DEFAULT_DATE_EN)
     sentence_placeholder = html.escape(config.DEFAULT_SENTENCE_DISPLAY_EN)
@@ -119,10 +120,12 @@ def _html_page() -> str:
 
 
 def _collapse_whitespace(value: str) -> str:
+    """Normalize user-entered form text to single spaces."""
     return " ".join(value.split())
 
 
 def _normalize_optional(value: str | None) -> str | None:
+    """Normalize optional form values and convert blanks to `None`."""
     if value is None:
         return None
     value = _collapse_whitespace(value)
@@ -132,6 +135,7 @@ def _normalize_optional(value: str | None) -> str | None:
 
 
 def _validate_sentence_text(value: str) -> str:
+    """Validate and normalize the required sentence field."""
     normalized = _collapse_whitespace(value)
     if not normalized:
         raise ValueError("Sentence text is required.")
@@ -146,6 +150,7 @@ def _build_worksheet(
     title: str | None,
     date_text: str | None,
 ) -> bytes:
+    """Build a default English worksheet from web form fields."""
     sentence_text = _validate_sentence_text(sentence_text)
     data = {
         "schema_version": "2.0",
@@ -160,6 +165,7 @@ def _build_worksheet(
 
 
 def _error_response(message: str) -> HTMLResponse:
+    """Render validation errors as a small HTML page."""
     safe_message = html.escape(message)
     content = f"""<!doctype html>
 <html lang="en">
@@ -182,6 +188,7 @@ def _error_response(message: str) -> HTMLResponse:
 
 @app.get("/", response_class=HTMLResponse)
 def index() -> str:
+    """Serve the worksheet form."""
     return _html_page()
 
 
@@ -192,6 +199,7 @@ def preview(
     title: str | None = Form(default=None),
     date_text: str | None = Form(default=None),
 ) -> Response:
+    """Return a generated PDF for inline browser preview."""
     try:
         pdf_bytes = _build_worksheet(child_name, sentence_text, title, date_text)
     except ValueError as exc:
@@ -206,6 +214,7 @@ def download(
     title: str | None = Form(default=None),
     date_text: str | None = Form(default=None),
 ) -> Response:
+    """Return a generated PDF as an attachment."""
     try:
         pdf_bytes = _build_worksheet(child_name, sentence_text, title, date_text)
     except ValueError as exc:

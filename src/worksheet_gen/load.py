@@ -10,10 +10,13 @@ from .schema import Worksheet
 
 
 class LoadError(RuntimeError):
+    """Raised when YAML input cannot be loaded or normalized."""
+
     pass
 
 
 def _default_sections() -> list[dict[str, Any]]:
+    """Return the standard v2 trace/write section structure."""
     return [
         {
             "type": "trace",
@@ -38,6 +41,7 @@ def _default_sections() -> list[dict[str, Any]]:
 
 
 def _apply_defaults(data: dict[str, Any]) -> dict[str, Any]:
+    """Fill sparse YAML input with the defaults expected by the strict schema."""
     result = dict(data)
     language = result.get("language")
     if language not in {"en", "fr"}:
@@ -90,6 +94,8 @@ def _apply_defaults(data: dict[str, Any]) -> dict[str, Any]:
 
     cartoon = result.get("cartoon")
     if cartoon is None:
+        # Keep cartoon disabled unless YAML opts in; the renderer treats missing
+        # or unsupported enabled assets as placeholders.
         result["cartoon"] = {
             "enabled": False,
             "asset": None,
@@ -109,6 +115,7 @@ def _apply_defaults(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def load_yaml(path: str | Path) -> Worksheet:
+    """Load a worksheet YAML file and return a validated `Worksheet` model."""
     path = Path(path)
     if not path.exists():
         raise LoadError(f"input file not found: {path}")
@@ -123,5 +130,6 @@ def load_yaml(path: str | Path) -> Worksheet:
 
 
 def load_data(data: dict[str, Any]) -> Worksheet:
+    """Apply loader defaults to in-memory data and validate it."""
     data = _apply_defaults(data)
     return Worksheet.model_validate(data)

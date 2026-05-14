@@ -104,7 +104,9 @@ PAGE_HEIGHT_PT = inch(11.0)
 MIN_MARGIN_MM = 10.0
 MIN_MARGIN_PT = mm(MIN_MARGIN_MM)
 
-# Default margins (preferred choices).
+# Default margins before the minimum-margin clamp is applied. The current left
+# and right defaults are intentionally smaller than MIN_MARGIN_PT, so the
+# effective rendered margins are 10mm unless these values are raised.
 MARGIN_DEFAULT_LEFT_PT = inch(0.25)
 MARGIN_DEFAULT_RIGHT_PT = inch(0.25)
 MARGIN_DEFAULT_TOP_PT = inch(0.5)
@@ -127,7 +129,8 @@ CONTENT_HEIGHT_PT = PAGE_HEIGHT_PT - MARGIN_TOP_PT - MARGIN_BOTTOM_PT
 # Handwriting guide system (the lined practice rows)
 # -----------------------------------------------------------------------------
 
-# Width of the handwriting guides area.
+# Width of the handwriting guides area before clamping to the effective content
+# width.
 # This can be less than CONTENT_WIDTH_PT to leave space for side blocks or just
 # to avoid "edge-to-edge" lines.
 #
@@ -372,7 +375,9 @@ SECTION_GAP_PT = 10.0
 # Trace model text wrapping
 # -----------------------------------------------------------------------------
 
-# Enable wrapping for trace section model text.
+# Enable render-time wrapping for trace section model text. The wrapping helper
+# is always available for tests and callers, but the renderer only consumes it
+# when this flag is true.
 TRACE_WRAP_ENABLED = False
 
 # Maximum number of guide rows a wrapped trace sentence can occupy.
@@ -411,7 +416,8 @@ CARTOON_MAX_H_PT = inch(CARTOON_MAX_H_IN)
 # Valid range: >= 0
 CARTOON_PAD_PT = mm(6.0)
 
-# Stroke for the placeholder rectangle if cartoon image is missing.
+# Stroke for the placeholder rectangle if a cartoon is enabled but the PNG image
+# is missing, omitted, or unsupported.
 # Valid range: > 0
 CARTOON_PLACEHOLDER_STROKE_PT = 1.0
 
